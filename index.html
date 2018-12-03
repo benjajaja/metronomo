@@ -12,6 +12,7 @@
 <style>
 html, body {
   margin: 0;
+    background: #ffd3b2;
 }
 canvas {
   display: block;
@@ -20,147 +21,18 @@ canvas {
 </style>
 </head>
 <body>
-  <input
-    id="bpm-slider"
-    class="mdl-slider mdl-js-slider"
-    type="range"
-    min="50"
-    max="200"
-    value="100"
-    tabindex="0"
-    oninput="handleBpmSliderChange()" />
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/13.3.11/Tone.js" integrity="sha256-06Noz1z7w1+QRHhHlmdvAVDLDtXatnrC1CRycpLKmJ8=" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.js" integrity="sha256-nAGlRh0I/Bl11HX9TGce1M8dg9bnxROCb425L4fT848=" crossorigin="anonymous"></script>
-  <script>
-const MARGIN = 20;
-let loop;
-let kick;
-let clap;
-function setup() {
-  let size = (windowWidth > windowHeight
-    ? windowHeight
-    : windowWidth) - MARGIN * 2;
-  createCanvas(size, size);
-  ellipseMode(CENTER);
-  const clickHandler = event => {
-    document.getElementById('defaultCanvas0').removeEventListener('mousedown', clickHandler, true);
-    const context = new AudioContext();
-    var buffer = context.createBuffer(1, 1, context.sampleRate)
-      var source = context.createBufferSource()
-      source.buffer = buffer
-      source.connect(context.destination)
-      source.start(0)
-
-      // resume the audio context
-      if (context.resume){
-        context.resume()
-      }
-    start();
-  };
-  document.getElementById('defaultCanvas0').addEventListener('mousedown', clickHandler, true);
-}
-
-function start() {
-  loop = new Tone.Sequence(
-    handleBeat,
-    Array.from(Array(12).keys()),
-    "12n"
-  );
-  Tone.Transport.start();
-	Tone.Transport.set("bpm", 100);
-  loop.start();
-  Tone.Transport.loop = true;
-  Tone.Transport.loopEnd = "1m";
-
-	kick = new Tone.MembraneSynth({
-		"envelope" : {
-							"sustain" : 0,
-							"attack" : 0.02,
-							"decay" : 0.8
-						},
-		"octaves" : 10
-	}).toMaster();
-	clap = new Tone.Synth({
-		"envelope" : {
-							"sustain" : 0,
-							"attack" : 0.002,
-							"decay" : 0.99,
-							"release": 1,
-						},
-	}).toMaster();
-}
-let currentStep = 0
-function handleBeat(time, step) {
-  currentStep = step
-	let note = step >= 3 && step < 10
-		? "B#2"
-		: "A2";
-	if (isBeat(step)) {
-		kick.triggerAttackRelease("D2", "8n", time);
-	} else {
-		clap.triggerAttackRelease(note, "8n", time);
-	}
-}
-function isBeat(i) {
-	return i === 3 || i === 6 || i === 8 || i === 10 || i === 0;
-}
-function draw() {
-  let size = (windowWidth > windowHeight
-    ? windowHeight / 2
-    : windowWidth / 2) - MARGIN * 2;
-  let width = size * 2;
-  let head = size * 2;
-
-  background("#ffffff");
-  translate(size + MARGIN, size + MARGIN);
-
-  strokeWeight(2);
-	stroke(1);
-	fill("#ffffff");
-  ellipse(0, 0, size * 2);
-  for (let i = 0; i < 24; i++) {
-    let d;
-		if (i % 2 !== 0) {
-			d = 5;
-		} else if (isBeat(i / 2)) {
-			d = 30;
-		} else {
-			d = 10;
-		}
-		if (currentStep == i / 2) {
-			d += 10;
-		}
-
-    let angle = (i - 24 / 4) / 24 * TWO_PI;
-    var x = cos(angle) * size;
-		var y = sin(angle) * size;
-		fill(i % 2 == 0 ? "#000000" : "#ffffff");
-    ellipse(x, y, d, d);
-  }
-
-  const playHeadAngle = (Tone.Transport.progress - 0.25) * TWO_PI;
-  stroke("#000000");
-  var playHeadLineLength = size;
-  var x = cos(playHeadAngle) * playHeadLineLength;
-  var y = sin(playHeadAngle) * playHeadLineLength;
-  line(0, 0, x, y);
-}
-
-
-function handleBpmSliderChange() {
-	var val = document.getElementById("bpm-slider").value;
-	Tone.Transport.set("bpm", val);
-	console.log("Bpm: " + val)
-}
-
-document.onkeypress = event => {
-	if (event.charCode === 32) { // space
-		loop[loop.state === 'started' ? 'stop' : 'start']()
-	}
-}
-
-  </script>
+  <script src="metronomo.js"></script>
+  <!--<input-->
+    <!--id="bpm-slider"-->
+    <!--class="mdl-slider mdl-js-slider"-->
+    <!--type="range"-->
+    <!--min="50"-->
+    <!--max="200"-->
+    <!--value="100"-->
+    <!--tabindex="0"-->
+    <!--oninput="handleBpmSliderChange()" />-->
 </body>
 </html>
 
