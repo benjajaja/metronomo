@@ -1,6 +1,9 @@
 const MARGIN = 20;
 let loop;
 let bpm = 80;
+let samples;
+const images = {};
+
 function canvasSize() {
   return (windowWidth > windowHeight
     ? windowHeight
@@ -10,16 +13,41 @@ function windowResized() {
   let size = canvasSize()
   resizeCanvas(size, size);
 }
-const images = {}
-function preload() {
-  images.turtle = loadImage('assets/turtle.png');
-  images.rabbit = loadImage('assets/rabbit.png');
-}
 function setup() {
   let size = canvasSize()
   createCanvas(size, size);
   ellipseMode(CENTER);
 
+}
+
+function preload() {
+  images.turtle = loadImage('assets/turtle.png');
+  images.rabbit = loadImage('assets/rabbit.png');
+  samples = [
+    {
+      url: './assets/guitarra_cuerdas_tapadas.wav',
+      beats: [0, 3, 6, 8, 10],
+      sampler: null,
+    },
+    {
+      url: './assets/cajon_kick.[ogg|wav]',
+      beats: [1, 2, 4, 5, 7, 9, 11],
+      sampler: null,
+    },
+  ];
+  const next = index => () => {
+    if (index < samples.length) {
+      samples[index].sampler = new Tone.Sampler({
+        'A2': samples[index].url,
+      }, next(index + 1)).toMaster();
+    } else {
+      waitForClick();
+    }
+  };
+  next(0)();
+}
+
+function waitForClick() {
   const firstClickHandler = event => {
     document.getElementById('defaultCanvas0').removeEventListener('click', firstClickHandler, true);
     document.getElementById('defaultCanvas0').addEventListener('mousedown', event => {
@@ -51,7 +79,23 @@ function setup() {
     if (context.resume){
       context.resume()
     }
-    start();
+    loop = new Tone.Sequence(
+      (time, step) => {
+        currentStep = step; // visual
+        samples.forEach(sample => {
+          if (sample.beats.indexOf(step) !== -1) {
+            sample.sampler.triggerAttackRelease("A2", "2n", time);
+          }
+        })
+      },
+      Array.from(Array(12).keys()),
+      "12n"
+    );
+    Tone.Transport.start();
+    Tone.Transport.set("bpm", bpm / 2);
+    loop.start();
+    Tone.Transport.loop = true;
+    Tone.Transport.loopEnd = "1m";
   };
   document.getElementById('defaultCanvas0').addEventListener('click', firstClickHandler, true);
   document.onkeypress = event => {
@@ -59,48 +103,6 @@ function setup() {
       clickHandler(event);
     }
   }
-}
-
-function start() {
-  const samples = [
-    {
-      url: './assets/guitarra_cuerdas_tapadas.wav',
-      beats: [0, 3, 6, 8, 10],
-      sampler: null,
-    },
-    {
-      url: './assets/cajon_kick.[ogg|wav]',
-      beats: [1, 2, 4, 5, 7, 9, 11],
-      sampler: null,
-    },
-  ];
-  const next = index => () => {
-    if (index < samples.length) {
-      samples[index].sampler = new Tone.Sampler({
-        'A2': samples[index].url,
-      }, next(index + 1)).toMaster();
-    } else {
-      loop = new Tone.Sequence(
-        (time, step) => {
-          currentStep = step; // visual
-          samples.forEach(sample => {
-            if (sample.beats.indexOf(step) !== -1) {
-              sample.sampler.triggerAttackRelease("A2", "2n", time);
-            }
-          })
-        },
-        Array.from(Array(12).keys()),
-        "12n"
-      );
-      Tone.Transport.start();
-      Tone.Transport.set("bpm", bpm / 2);
-      loop.start();
-      Tone.Transport.loop = true;
-      Tone.Transport.loopEnd = "1m";
-
-    }
-  };
-  next(0)();
 }
 let currentStep = 0
 function handleBeat(time, step) {
