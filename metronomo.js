@@ -68,17 +68,6 @@ function waitForClick() {
       return
     }, true);
 
-    const context = new AudioContext();
-    var buffer = context.createBuffer(1, 1, context.sampleRate)
-    var source = context.createBufferSource()
-    source.buffer = buffer
-    source.connect(context.destination)
-    source.start(0)
-
-    // resume the audio context
-    if (context.resume){
-      context.resume()
-    }
     loop = new Tone.Sequence(
       (time, step) => {
         currentStep = step; // visual
@@ -91,6 +80,9 @@ function waitForClick() {
       Array.from(Array(12).keys()),
       "12n"
     );
+    if (loop.context.resume) {
+      loop.context.resume();
+    }
     Tone.Transport.start();
     Tone.Transport.set("bpm", bpm / 2);
     loop.start();
