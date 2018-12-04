@@ -4,6 +4,7 @@ let bpm = parseInt(getQueryParam('bpm'), 10) || 80;
 let samples;
 let currentStep = 0
 let hasStarted = false;
+let background = null;
 const images = {};
 
 function canvasSize() {
@@ -14,12 +15,14 @@ function canvasSize() {
 function windowResized() {
   let size = canvasSize()
   resizeCanvas(size, size);
+  background = makeBackground();
 }
 function setup() {
   let size = canvasSize()
   createCanvas(size, size);
   ellipseMode(CENTER);
-
+  background = makeBackground();
+  waitForClick();
 }
 
 function preload() {
@@ -27,12 +30,12 @@ function preload() {
   images.rabbit = loadImage('assets/rabbit.png');
   samples = [
     {
-      url: './assets/guitarra_cuerdas_tapadas.wav',
+      url: './assets/guitarra_cuerdas_tapadas.ogg',
       beats: [0, 3, 6, 8, 10],
       sampler: null,
     },
     {
-      url: './assets/cajon_kick.[ogg|wav]',
+      url: './assets/cajon_kick.ogg',
       beats: [1, 2, 4, 5, 7, 9, 11],
       sampler: null,
     },
@@ -43,7 +46,7 @@ function preload() {
         'A2': samples[index].url,
       }, next(index + 1)).toMaster();
     } else {
-      waitForClick();
+      //waitForClick();
     }
   };
   next(0)();
@@ -89,64 +92,83 @@ function handleBeat(time, step) {
 //		clap.triggerAttackRelease(note, "8n", time);
 	}
 }
+
 function isBeat(i) {
 	return i === 3 || i === 6 || i === 8 || i === 10 || i === 0;
 }
-function draw() {
-  let size = (windowWidth > windowHeight
+
+function makeBackground() {
+  const size = (windowWidth > windowHeight
     ? windowHeight / 2
     : windowWidth / 2) - (MARGIN * 2);
-  let width = size * 2;
-  let height = size * 2;
-
-  background("#ffe9b7");
-
+  const width = size * 2;
+  const height = size * 2;
+  const pg = createGraphics(windowWidth, windowHeight);
+  pg.background("#ffe9b7");
 
   const imageSize = size / 4;
-  image(images.turtle, MARGIN * 2, height - imageSize + MARGIN * 2, imageSize, imageSize)
-  image(images.rabbit, width - imageSize + MARGIN * 2, height - imageSize + MARGIN * 2, imageSize, imageSize)
+  pg.image(images.turtle, MARGIN * 2, height - imageSize + MARGIN * 2, imageSize, imageSize)
+  pg.image(images.rabbit, width - imageSize + MARGIN * 2, height - imageSize + MARGIN * 2, imageSize, imageSize)
 
-  translate(size + MARGIN * 2, size + MARGIN * 2);
+  pg.translate(size + MARGIN * 2, size + MARGIN * 2);
 
-  strokeWeight(2);
-	stroke(1);
-	fill("#ddffd1");
-  ellipse(0, 0, size * 2);
+  pg.strokeWeight(2);
+	pg.stroke(1);
+	pg.fill("#ddffd1");
+  pg.ellipse(0, 0, size * 2);
   for (let i = 0; i < 24; i++) {
     let d;
-    let isLastBeat = false;
+    let color;
 		if (i % 2 !== 0) {
-			d = 0.1;
-		} else if (isBeat(i / 2)) {
-			d = 1;
-      let progress = Tone.Transport.progress * 24 - i
-      if (progress > 0 && progress < 4) {
-        isLastBeat = true
-        d += 1 - progress / 4;
-      }
-		} else {
+			d = 0.3;
+      pg.fill("#cccccc");
+		} else if (!isBeat(i / 2)) {
 			d = 0.5;
+      pg.fill("#00cc00");
 		}
 
 
     let angle = (i - 24 / 4) / 24 * TWO_PI;
     var x = cos(angle) * size;
 		var y = sin(angle) * size;
-    if (isLastBeat) {
-      fill("#ff0000");
-    } else {
-      fill(i % 2 == 0 ? "#000000" : "#ffffff");
-    }
-    ellipse(x, y, d * (size / 10), d * (size / 10));
+    pg.ellipse(x, y, d * (size / 10), d * (size / 10));
   }
 
   let textSize_ = size / 10;
-  textSize(textSize_);
-  textAlign(CENTER);
-  textFont('Georgia');
-  fill("#000000");
-  text(bpm + 'bpm', 0, textSize_ + 2);
+  pg.textSize(textSize_);
+  pg.textAlign(CENTER);
+  pg.textFont('Georgia');
+  pg.fill("#000000");
+  pg.text(bpm + 'bpm', 0, textSize_ + 2);
+  return pg;
+}
 
+function draw() {
+  let size = (windowWidth > windowHeight
+    ? windowHeight / 2
+    : windowWidth / 2) - (MARGIN * 2);
+  image(background, 0, 0);
+
+  translate(size + MARGIN * 2, size + MARGIN * 2);
+  for (let i = 0; i < 12; i++) {
+		if (!isBeat(i)) continue;
+
+    let d;
+    let isLastBeat = false;
+
+    d = 1;
+    let progress = Tone.Transport.progress * 12 - i
+    if (progress > 0 && progress < 2) {
+      isLastBeat = true
+      d += 1 - progress / 2;
+    }
+
+    let angle = (i - 12 / 4) / 12 * TWO_PI;
+    var x = cos(angle) * size;
+		var y = sin(angle) * size;
+    fill(isLastBeat ? "#cc0000" : "#00cc00")
+    ellipse(x, y, d * (size / 10), d * (size / 10));
+  }
   const playHeadAngle = (Tone.Transport.progress - 0.25) * TWO_PI;
   stroke("#000000");
   ellipse(0, 0, size / 30);
@@ -189,6 +211,7 @@ function touchStarted() {
 function setBpm(bpm_) {
   bpm = bpm_;
   Tone.Transport.set("bpm", bpm / 2);
+  background = makeBackground();
   console.log('bpm', bpm);
   if (history.pushState) {
     var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?bpm=' + bpm;
