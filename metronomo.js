@@ -1,7 +1,9 @@
 const MARGIN = 20;
 let loop;
-let bpm = 80;
+let bpm = parseInt(getQueryParam('bpm'), 10) || 80;
 let samples;
+let currentStep = 0
+let hasStarted = false;
 const images = {};
 
 function canvasSize() {
@@ -49,24 +51,8 @@ function preload() {
 
 function waitForClick() {
   const firstClickHandler = event => {
+    hasStarted = true;
     document.getElementById('defaultCanvas0').removeEventListener('click', firstClickHandler, true);
-    document.getElementById('defaultCanvas0').addEventListener('mousedown', event => {
-      let size = canvasSize()
-      console.log(event.clientX, size);
-      if (event.clientY > size - size / 6) {
-        if (event.clientX < size / 6) {
-          bpm -= 10;
-          Tone.Transport.set("bpm", bpm / 2);
-          return;
-        } else if (event.clientX > size - size / 6) {
-          bpm += 10;
-          Tone.Transport.set("bpm", bpm / 2);
-          return;
-        }
-      }
-      Tone.Transport[Tone.Transport.state === 'started' ? 'stop': 'start']()
-      return
-    }, true);
 
     loop = new Tone.Sequence(
       (time, step) => {
@@ -90,13 +76,8 @@ function waitForClick() {
     Tone.Transport.loopEnd = "1m";
   };
   document.getElementById('defaultCanvas0').addEventListener('click', firstClickHandler, true);
-  document.onkeypress = event => {
-    if (event.charCode === 32) { // space
-      clickHandler(event);
-    }
-  }
 }
-let currentStep = 0
+
 function handleBeat(time, step) {
   currentStep = step
 	let note = step >= 3 && step < 10
@@ -118,7 +99,7 @@ function draw() {
   let width = size * 2;
   let height = size * 2;
 
-  background("#ffd3b2");
+  background("#ffe9b7");
 
 
   const imageSize = size / 4;
@@ -138,17 +119,15 @@ function draw() {
 			d = 0.1;
 		} else if (isBeat(i / 2)) {
 			d = 1;
+      let progress = Tone.Transport.progress * 24 - i
+      if (progress > 0 && progress < 4) {
+        isLastBeat = true
+        d += 1 - progress / 4;
+      }
 		} else {
-			d = 0.2;
-		}
-		if (currentStep == i / 2) {
-			d = 1.5;
+			d = 0.5;
 		}
 
-    let progress = Tone.Transport.progress * 24 - i
-    if (progress > 0 && progress < 2) {
-      isLastBeat = true
-    }
 
     let angle = (i - 24 / 4) / 24 * TWO_PI;
     var x = cos(angle) * size;
@@ -161,8 +140,16 @@ function draw() {
     ellipse(x, y, d * (size / 10), d * (size / 10));
   }
 
+  let textSize_ = size / 10;
+  textSize(textSize_);
+  textAlign(CENTER);
+  textFont('Georgia');
+  fill("#000000");
+  text(bpm + 'bpm', 0, textSize_ + 2);
+
   const playHeadAngle = (Tone.Transport.progress - 0.25) * TWO_PI;
   stroke("#000000");
+  ellipse(0, 0, size / 30);
   var playHeadLineLength = size - 20;
   var x = cos(playHeadAngle) * playHeadLineLength;
   var y = sin(playHeadAngle) * playHeadLineLength;
@@ -176,3 +163,39 @@ function draw() {
 
 }
 
+function touchStarted() {
+  let size = canvasSize()
+  if (mouseY > size - size / 4) {
+    if (mouseX < size / 4) {
+      setBpm(bpm - 10);
+      return false;
+    } else if (mouseX > size - size / 4) {
+      setBpm(bpm + 10);
+      return false;
+    }
+  }
+  if (!hasStarted) {
+    return
+  }
+  if (Tone.Transport.state === 'started') {
+    Tone.Transport.stop();
+    currentStep = 0;
+  } else {
+    Tone.Transport.start();
+  }
+  return false;
+}
+
+function setBpm(bpm_) {
+  bpm = bpm_;
+  Tone.Transport.set("bpm", bpm / 2);
+  console.log('bpm', bpm);
+  if (history.pushState) {
+    var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?bpm=' + bpm;
+    window.history.replaceState({path:newurl},'',newurl);
+  }
+}
+
+function getQueryParam(name) {
+  return (window.location.search.substr(1).split('&').map(eq => eq.split('=')).find(eq => eq[0] === name) || [])[1];
+}
