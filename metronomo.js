@@ -4,6 +4,7 @@ let bpm = parseInt(getQueryParam('bpm'), 10) || 80;
 let samples;
 let currentStep = 0
 let hasStarted = false;
+let hasLoaded = false;
 let background = null;
 const images = {};
 
@@ -22,20 +23,14 @@ function setup() {
   createCanvas(size, size);
   ellipseMode(CENTER);
   background = makeBackground();
-  waitForClick();
-}
-
-function preload() {
-  images.turtle = loadImage('assets/turtle.png');
-  images.rabbit = loadImage('assets/rabbit.png');
   samples = [
     {
-      url: './assets/guitarra_cuerdas_tapadas.ogg',
+      url: './assets/guitarra_cuerdas_tapadas.[ogg|wav]',
       beats: [0, 3, 6, 8, 10],
       sampler: null,
     },
     {
-      url: './assets/cajon_kick.ogg',
+      url: './assets/cajon_kick.[ogg|wav]',
       beats: [1, 2, 4, 5, 7, 9, 11],
       sampler: null,
     },
@@ -44,12 +39,21 @@ function preload() {
     if (index < samples.length) {
       samples[index].sampler = new Tone.Sampler({
         'A2': samples[index].url,
-      }, next(index + 1)).toMaster();
+      }, result => {
+        console.log('onLoad', result);
+        next(index + 1)();
+      }).toMaster();
     } else {
-      //waitForClick();
+      hasLoaded = true;
+      waitForClick();
     }
   };
   next(0)();
+}
+
+function preload() {
+  images.turtle = loadImage('assets/turtle.png');
+  images.rabbit = loadImage('assets/rabbit.png');
 }
 
 function waitForClick() {
@@ -169,6 +173,11 @@ function draw() {
     fill(isLastBeat ? "#cc0000" : "#00cc00")
     ellipse(x, y, d * (size / 10), d * (size / 10));
   }
+
+  if (!hasLoaded) {
+    return;
+  }
+
   const playHeadAngle = (Tone.Transport.progress - 0.25) * TWO_PI;
   stroke("#000000");
   ellipse(0, 0, size / 30);
@@ -196,7 +205,7 @@ function touchStarted() {
       return false;
     }
   }
-  if (!hasStarted) {
+  if (!hasLoaded) {
     return
   }
   if (Tone.Transport.state === 'started') {
