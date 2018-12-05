@@ -83,6 +83,9 @@ function makeBackground() {
     : windowWidth / 2) - (MARGIN * 2);
   const width = size * 2;
   const height = size * 2;
+  if (background) {
+    background.remove();
+  }
   const pg = createGraphics(windowWidth, windowHeight);
   pg.background("#ffe9b7");
 
