@@ -45,7 +45,6 @@ function setup() {
       }).toMaster();
     } else {
       hasLoaded = true;
-      waitForClick();
     }
   };
   next(0)();
@@ -56,34 +55,11 @@ function preload() {
   images.rabbit = loadImage('assets/rabbit.png');
 }
 
-function waitForClick() {
-  const firstClickHandler = event => {
-    hasStarted = true;
-    document.getElementById('defaultCanvas0').removeEventListener('click', firstClickHandler, true);
-
-    loop = new Tone.Sequence(
-      (time, step) => {
-        currentStep = step; // visual
-        samples.forEach(sample => {
-          if (sample.beats.indexOf(step) !== -1) {
-            sample.sampler.triggerAttackRelease("A2", "2n", time);
-          }
-        })
-      },
-      Array.from(Array(12).keys()),
-      "12n"
-    );
-    if (loop.context.resume) {
-      loop.context.resume();
-    }
-    Tone.Transport.start();
-    Tone.Transport.set("bpm", bpm / 2);
-    loop.start();
-    Tone.Transport.loop = true;
-    Tone.Transport.loopEnd = "1m";
-  };
-  document.getElementById('defaultCanvas0').addEventListener('click', firstClickHandler, true);
-}
+//function waitForClick() {
+  //const firstClickHandler = event => {
+  //};
+  //document.getElementById('defaultCanvas0').addEventListener('click', firstClickHandler, true);
+//}
 
 function handleBeat(time, step) {
   currentStep = step
@@ -195,6 +171,34 @@ function draw() {
 }
 
 function touchStarted() {
+  if (!hasLoaded) {
+    return;
+  } else if (!hasStarted) {
+    hasStarted = true;
+
+    loop = new Tone.Sequence(
+      (time, step) => {
+        currentStep = step; // visual
+        samples.forEach(sample => {
+          if (sample.beats.indexOf(step) !== -1) {
+            sample.sampler.triggerAttackRelease("A2", "2n", time);
+          }
+        })
+      },
+      Array.from(Array(12).keys()),
+      "12n"
+    );
+    if (loop.context.resume) {
+      loop.context.resume();
+    }
+    Tone.Transport.start();
+    Tone.Transport.set("bpm", bpm / 2);
+    loop.start();
+    Tone.Transport.loop = true;
+    Tone.Transport.loopEnd = "1m";
+    return;
+  }
+
   let size = canvasSize()
   if (mouseY > size - size / 4) {
     if (mouseX < size / 4) {
