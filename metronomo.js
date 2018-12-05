@@ -39,10 +39,7 @@ function setup() {
     if (index < samples.length) {
       samples[index].sampler = new Tone.Sampler({
         'A2': samples[index].url,
-      }, result => {
-        console.log('onLoad', result);
-        next(index + 1)();
-      }).toMaster();
+      }, next(index + 1)).toMaster();
     } else {
       hasLoaded = true;
     }
@@ -55,11 +52,6 @@ function preload() {
   images.rabbit = loadImage('assets/rabbit.png');
 }
 
-//function waitForClick() {
-  //const firstClickHandler = event => {
-  //};
-  //document.getElementById('defaultCanvas0').addEventListener('click', firstClickHandler, true);
-//}
 
 function handleBeat(time, step) {
   currentStep = step
@@ -87,7 +79,7 @@ function makeBackground() {
     background.remove();
   }
   const pg = createGraphics(windowWidth, windowHeight);
-  pg.background("#ffe9b7");
+  pg.background("#c4e9f2");
 
   const imageSize = size / 4;
   pg.image(images.turtle, MARGIN * 2, height - imageSize + MARGIN * 2, imageSize, imageSize)
@@ -97,24 +89,20 @@ function makeBackground() {
 
   pg.strokeWeight(2);
 	pg.stroke(1);
-	pg.fill("#ddffd1");
+	pg.fill("#d6fcea");
   pg.ellipse(0, 0, size * 2);
-  for (let i = 0; i < 24; i++) {
-    let d;
-    let color;
-		if (i % 2 !== 0) {
-			d = 0.3;
-      pg.fill("#cccccc");
-		} else if (!isBeat(i / 2)) {
-			d = 0.5;
-      pg.fill("#00cc00");
-		}
+  for (let i = 0; i < 12; i++) {
+		if (isBeat(i)) {
+      continue;
+    }
+    let d = .5;
+    pg.fill("#cccccc");
 
-
-    let angle = (i - 24 / 4) / 24 * TWO_PI;
+    let angle = (i - 12 / 4) / 12 * TWO_PI;
     var x = cos(angle) * size;
 		var y = sin(angle) * size;
-    pg.ellipse(x, y, d * (size / 10), d * (size / 10));
+    var diameter = d * (size / 10);
+    pg.ellipse(x, y, diameter, diameter);
   }
 
   let textSize_ = size / 10;
@@ -150,7 +138,8 @@ function draw() {
     var x = cos(angle) * size;
 		var y = sin(angle) * size;
     fill(isLastBeat ? "#cc0000" : "#00cc00")
-    ellipse(x, y, d * (size / 10), d * (size / 10));
+    var diameter = Math.min(MARGIN * 4, d * (size / 10));
+    ellipse(x, y, diameter);
   }
 
   if (!hasLoaded) {
@@ -159,6 +148,7 @@ function draw() {
 
   const playHeadAngle = (Tone.Transport.progress - 0.25) * TWO_PI;
   stroke("#000000");
+  fill("#000000");
   ellipse(0, 0, size / 30);
   var playHeadLineLength = size - 20;
   var x = cos(playHeadAngle) * playHeadLineLength;
@@ -228,7 +218,6 @@ function setBpm(bpm_) {
   bpm = bpm_;
   Tone.Transport.set("bpm", bpm / 2);
   background = makeBackground();
-  console.log('bpm', bpm);
   if (history.pushState) {
     var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?bpm=' + bpm;
     window.history.replaceState({path:newurl},'',newurl);
@@ -238,3 +227,4 @@ function setBpm(bpm_) {
 function getQueryParam(name) {
   return (window.location.search.substr(1).split('&').map(eq => eq.split('=')).find(eq => eq[0] === name) || [])[1];
 }
+
